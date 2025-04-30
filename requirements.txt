@@ -1,0 +1,10 @@
+transformers
+torch
+fuzzywuzzy
+numpy
+librosa
+soundfile
+gtts
+gradio
+webrtcvad
+noisereduce
