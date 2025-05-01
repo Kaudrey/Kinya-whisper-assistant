@@ -1,3 +1,4 @@
+import json
 import re
 import os
 import time
@@ -9,10 +10,8 @@ import librosa
 import soundfile as sf
 from gtts import gTTS
 import torch
-import webrtcvad
-import noisereduce as nr
-
-from qa_data import qa_pairs, default_response  # <-- loading Q&A from qa_data.py
+import webrtcvad  # Added for voice activity detection
+import noisereduce as nr  # Added for noise reduction
 
 # Create the necessary folders
 os.makedirs("audios", exist_ok=True)
@@ -40,7 +39,7 @@ def transcribe_audio(audio_path):
 
         # Remove silence using VAD with error handling
         try:
-            vad = webrtcvad.Vad(1)  # Less aggressive
+            vad = webrtcvad.Vad(1)  # Reduced aggressiveness to level 1
             frame_duration = 30  # ms
             frame_length = int(16000 * frame_duration / 1000)
             frames = librosa.util.frame(audio_data, frame_length=frame_length, hop_length=frame_length)
@@ -52,15 +51,16 @@ def transcribe_audio(audio_path):
 
             if len(speech_frames) == 0:
                 print("No speech detected, using original audio")
-                speech_frames = [audio_data]  # fallback
+                speech_frames = [audio_data]  # Fallback to original audio
 
             audio_data = np.concatenate(speech_frames)
         except Exception as vad_error:
             print(f"VAD processing error: {vad_error}, using original audio")
-            pass
+            pass  # Fallback to original audio if VAD fails
 
         inputs = processor(audio_data, sampling_rate=16000, return_tensors="pt")
 
+        # Generate transcription with anti-repetition parameters
         predicted_ids = model.generate(
             inputs.input_features,
             num_beams=5,
@@ -71,13 +71,24 @@ def transcribe_audio(audio_path):
             early_stopping=True
         )
 
+        # Decode and clean output
         transcription = processor.batch_decode(predicted_ids, skip_special_tokens=True)[0]
+
+        # Post-processing filters
         transcription = re.sub(r'(\w)\1{2,}', r'\1', transcription)
         transcription = re.sub(r'\b(\w+)( \1\b)+', r'\1', transcription)
-        return transcription.strip()
+        transcription = transcription.strip()
+
+        return transcription
     except Exception as e:
         print(f"Transcription error: {str(e)}")
         return ""
+
+# Load Q&A pairs
+with open("qa_data.json") as f:
+    qa_data = json.load(f)
+    qa_pairs = {pair["question"]: pair["answer"] for pair in qa_data["qa_pairs"]}
+    default_response = qa_data["default_response"]
 
 
 def normalize(text):
@@ -106,12 +117,14 @@ def process_audio(audio_path):
     output_path = f"outputs/output_{timestamp}.mp3"
 
     try:
+        # Load and preprocess audio
         audio_data, _ = librosa.load(audio_path, sr=16000)
         sf.write(input_path, audio_data, 16000, subtype='PCM_16')
 
         question = transcribe_audio(input_path)
         answer, matched_key = get_answer(question)
 
+        # Generate TTS response with proper language code
         tts = gTTS(text=answer, lang="en", slow=False)
         tts.save(output_path)
 
@@ -132,10 +145,12 @@ def create_qa_reference():
     return "\n".join(qa_list)
 
 
+# Create Gradio interface
 with gr.Blocks(title="Kinyarwanda Voice Assistant") as demo:
     gr.Markdown("# 🤖 Kinyarwanda Voice Assistant")
     gr.Markdown("Record or upload audio in Kinyarwanda to interact with the assistant")
 
+    # QA Reference Section
     with gr.Accordion("📚 Click to see supported questions and answers", open=False):
         gr.Markdown(create_qa_reference())
 

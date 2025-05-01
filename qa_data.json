@@ -1,0 +1,25 @@
+{
+    "qa_pairs": [
+        {
+            "question": "Umurwa mukuru w'u Rwanda ni uwuhe?",
+            "answer": "Ni Kigali"
+        },
+        {
+            "question": "Rwanda Coding Academy iherereye he?",
+            "answer": "Iherereye mu Karere ka Nyabihu, mu Ntara y’Iburengerazuba."
+        },
+        {
+          "question": "Ni hehe hari ingagi mu Rwanda?",
+          "answer": "Ingagi ziboneka muri Parike y'Igihugu ya Volcanoes."
+        },
+        {
+          "question": "Ni ryari habaho Umuganura?",
+          "answer": "Umuganura uba buri mwaka muri Kanama."
+        },
+        {
+            "question": "Ninde Perezida wa mbere w'u Rwanda?",
+            "answer": "Perezida wa mbere yari Dominique Mbonyumutwa"
+        }
+    ],
+    "default_response": "Mwihangane! Muhindure ikibazo"
+}
